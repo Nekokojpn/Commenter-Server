@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<head>
+</head>
+<body>
+    <h1>画面にコメント流すやつ</h1>
+
+    <h3>名前（画面に表示されます）</h3>
+    <input type="text" id="username">
+    <h3>コメント</h3>
+    <input type="text" id="comment" value="">
+    
+    <div id="choiser">
+        
+    </div>
+
+    <p id="messages"></p>
+
+    <h5 id="status">接続中...</h5>
+
+
+
+
+    <script>
+        let port = 25252;
+
+
+        var sock = new WebSocket('ws://ik1-431-47779.vs.sakura.ne.jp:' + port);
+
+        let status;
+        let messages;
+        let choiser;
+        
+        window.onload =  () => {
+
+            let comment = document.getElementById('comment');
+
+            let name = document.getElementById('username');
+
+            messages = document.getElementById('messages');
+
+            status = document.getElementById('status');
+
+            choiser = document.getElementById('choiser');
+            
+            comment.addEventListener('keypress', (e) => {
+                // form1に入力されたキーを取得
+                const key = e.keyCode || e.charCode || 0;
+                // 13はEnterキーのキーコード
+                if (key == 13) {
+                    send(JSON.stringify({username:name.value, message:comment.value, mode:1}), true, true);
+                    comment.value = '';
+                }
+            });
+            sock.addEventListener("open", e => {
+                status.innerHTML = "接続されました。";
+                console.log('接続されました。');
+            });
+
+            sock.addEventListener("message", e => {
+                let data = JSON.parse(e.data);
+                console.log(e.data);
+                if(data.mode === 1)
+                    messages.innerHTML = data.username + ': ' + data.message + "<br>" + messages.innerHTML;
+                else if(data.mode === 2) {
+                    let elm = "";
+                    data.choises.forEach(element => {
+                        elm += "<input type='button' value='" + element + "' onclick='send(\"" + JSON.stringify({username:name.value, message:element, mode:1}) + "\", true, false)'><br>";
+                    });
+                    choiser.innerHTML = elm;
+                }
+            });
+
+            sock.addEventListener("close", e => {
+                status.innerHTML = "接続が失われました。";
+                console.log('接続が失われました。');
+            });
+
+            sock.addEventListener("error", e => {
+                window.alert("エラーが発生しました。再読み込みしてください。");
+            });
+        };
+        function send(mes, validateName, validateComment) {
+            if(validateName && name.value === '') {
+                window.alert('ユーザ名を入力してください。');
+                return;
+            }
+            if(validateComment && comment.value === '') {
+                window.alert('コメントを入力してください。');
+                return;
+            }
+            sock.send(mes);
+        }
+    </script>
+</body>
